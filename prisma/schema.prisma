@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+// ============================================================
+// PRISMA SCHEMA - STARTER TEMPLATE
+// ============================================================
+// 1. Copy .env.example to .env and set your DATABASE_URL
+// 2. Run `npx prisma migrate dev --name init` to create tables
+// 3. Run `npx prisma generate` to create Prisma Client
+// ============================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id    String       @id @default(uuid())
+  email String       @unique
+  username  String?  @unique 
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Example relation: A User can have many Posts
+  // posts Post[]
+
+  // Additional index for email searches
+  @@index([email])  
+}
+
+
+// ============================================================
+// EXAMPLE MODEL (commented out)
+// ============================================================
+// model Post {
+//   id        String   @id @default(uuid())
+//   title     String
+//   content   String?
+//   authorId  String
+//   author    User     @relation(fields: [authorId], references: [id])
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
