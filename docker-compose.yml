@@ -3,14 +3,15 @@ services:
     build: .
     ports:
       - "3000:3000"
+    env_file:
+      - .env     
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/nest_db?schema=public
     depends_on:
       - db
-    # For hot-reload development, mount the local code.
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./src:/app/src
+      - ./prisma:/app/prisma
 
   db:
     image: postgres:15-alpine

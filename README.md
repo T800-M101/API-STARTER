@@ -39,7 +39,7 @@ Follow these steps **in exact order**:
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repository-url>
+git clone <https://github.com/T800-M101/API-STARTER>
 cd api-starter
 ```
 
@@ -176,7 +176,7 @@ src/
 ├── core/               # Low-level logic (Prisma, Database, etc.)
 │   └── database/       # PrismaService, base repositories
 │
-├── modules/            # Business modules (most important part)
+├── modules/            # Business modules (most important part)modules
 │   ├── auth/
 │   │   ├── dto/        # Module-specific DTOs
 │   │   ├── strategies/ # Passport strategies
