@@ -38,24 +38,24 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('logout')
-  @ApiBearerAuth('access-token')
-  @ApiLogout()
+  @UseGuards(JwtAuthGuard)       // 1. Execution: Do you have permission?
+  @ApiBearerAuth('access-token') // 2. Documentation: Visual notification that a token is required
+  @ApiLogout()                   // 3. Documentation: Response Details
   async logout(@CurrentUserId() userId: string) {
     return this.authService.logout(userId);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiProfile()
   async getProfile(@CurrentUser() user: any) {
     return user;
   }
   
-  @UseGuards(JwtRefreshAuthGuard)
   @Post('refresh')
+  @UseGuards(JwtRefreshAuthGuard)
   @ApiBearerAuth('refresh-token')
   @ApiRefresh()
   async refresh(@CurrentUserId() userId: string) {

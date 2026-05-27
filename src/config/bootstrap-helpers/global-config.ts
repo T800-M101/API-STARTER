@@ -7,6 +7,7 @@
         whitelist: true,       // Remove properties that are not in the DTO
         forbidNonWhitelisted: true, // It throws an error if they send fields that are not allowed.
         transform: true,       // Automatically transforms payloads into class instances
+        stopAtFirstError: true // stops the validation at the first error found
       }),
     );
   
