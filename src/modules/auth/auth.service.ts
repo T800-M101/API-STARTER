@@ -8,97 +8,221 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-
+import { ConfigService } from '@nestjs/config';
+import { StringValue } from 'ms';
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
-    // We check if the email already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerDto.email },
-    });
+  async signUp(registerDto: RegisterDto) {
+    const existingUser =
+      await this.prisma.user.findUnique({
+        where: {
+          email: registerDto.email,
+        },
+      });
 
     if (existingUser) {
-      throw new ConflictException('The email is already registered');
+      throw new ConflictException(
+        'The email is already registered',
+      );
     }
 
-    // Password hash (10 is the number of salting rounds)
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const hashedPassword =
+      await bcrypt.hash(
+        registerDto.password,
+        10,
+      );
 
-    // We will save the user here (we will implement bcrypt later)
-    return this.prisma.user.create({
-      data: {
-        email: registerDto.email,
-        username: registerDto.username,
-        password: hashedPassword,
+    const user =
+      await this.prisma.user.create({
+        data: {
+          email: registerDto.email,
+          username:
+            registerDto.username,
+          password:
+            hashedPassword,
+        },
+      });
+
+    return {
+      message:
+        'User created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
       },
-    });
+    };
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: loginDto.email },
-    });
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          email: loginDto.email,
+        },
+        select: {
+          id: true,
+          email: true,
+          password: true,
+        },
+      });
 
-    // If the user does not exist, we assign null; if it exists, we validate the hash.
-    const isPasswordValid = user
-      ? await bcrypt.compare(loginDto.password, user.password)
-      : false;
+    const isPasswordValid =
+      user
+        ? await bcrypt.compare(
+            loginDto.password,
+            user.password,
+          )
+        : false;
 
     if (!user || !isPasswordValid) {
-      throw new UnauthorizedException('Wrong credentials');
+      throw new UnauthorizedException(
+        'Wrong credentials',
+      );
     }
-    const payload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: '60m',
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '7d',
-    });
 
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { hashedRefreshToken },
-    });
+    const tokens =
+      await this.generateTokens(
+        user.id,
+        user.email,
+      );
 
-    return { message: 'Successful authentication', accessToken, refreshToken };
+    await this.updateRefreshToken(
+      user.id,
+      tokens.refreshToken,
+    );
+
+    return {
+      message:
+        'Successful authentication',
+      ...tokens,
+    };
   }
 
   async logout(userId: string) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { hashedRefreshToken: null },
+    await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+      },
+      data: {
+        hashedRefreshToken: null,
+      },
     });
+
+    return {
+      message:
+        'Logged out successfully',
+    };
   }
 
-  async refreshToken(user: any) {
-    const payload = { sub: user.userId, email: user.email };
+  async refreshToken(
+    userId: string,
+  ) {
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          email: true,
+          hashedRefreshToken: true,
+        },
+      });
 
-    // We issued a new accessToken and a new refreshToken
-    const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: '60m',
-    });
+    if (
+      !user ||
+      !user.hashedRefreshToken
+    ) {
+      throw new UnauthorizedException(
+        'Invalid refresh token',
+      );
+    }
 
-    const newRefreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '7d',
-    });
+    const tokens =
+      await this.generateTokens(
+        user.id,
+        user.email,
+      );
 
-    // We updated the hash in the database
-    const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+    await this.updateRefreshToken(
+      user.id,
+      tokens.refreshToken,
+    );
+
+    return tokens;
+  }
+
+private async generateTokens(
+  userId: string,
+  email: string,
+) {
+  const payload = {
+    sub: userId,
+    email,
+  };
+
+  const accessToken =
+    await this.jwtService.signAsync(
+      payload,
+      {
+        secret:
+          this.configService.get<string>(
+            'JWT_SECRET',
+          ),
+
+        expiresIn:
+          this.configService.get<StringValue>(
+            'JWT_ACCESS_EXPIRES_IN',
+          ) ?? '60m',
+      },
+    );
+
+  const refreshToken =
+    await this.jwtService.signAsync(
+      payload,
+      {
+        secret:
+          this.configService.get<string>(
+            'JWT_REFRESH_SECRET',
+          ),
+
+        expiresIn:
+          this.configService.get<StringValue>(
+            'JWT_REFRESH_EXPIRES_IN',
+          ) ?? '7d',
+      },
+    );
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
+  private async updateRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ) {
+    const hashedRefreshToken =
+      await bcrypt.hash(
+        refreshToken,
+        10,
+      );
+
     await this.prisma.user.update({
-      where: { id: user.userId },
-      data: { hashedRefreshToken },
+      where: {
+        id: userId,
+      },
+      data: {
+        hashedRefreshToken,
+      },
     });
-
-    return { accessToken, refreshToken: newRefreshToken };
   }
 }

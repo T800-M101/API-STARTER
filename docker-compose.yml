@@ -1,6 +1,8 @@
 services:
   api:
     build: .
+    working_dir: /app
+    command: npm run start:dev
     ports:
       - "3000:3000"
     env_file:
@@ -10,8 +12,8 @@ services:
     depends_on:
       - db
     volumes:
-      - ./src:/app/src
-      - ./prisma:/app/prisma
+      - .:/app
+      - /app/node_modules
 
   db:
     image: postgres:15-alpine

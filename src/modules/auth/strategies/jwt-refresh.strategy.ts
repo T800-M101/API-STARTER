@@ -1,26 +1,51 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
+import { PrismaService } from 'src/core/database/prisma.service';
+import { ConfigService } from '@nestjs/config';
+
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
-export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-  constructor() {
-    const secret = process.env.JWT_REFRESH_SECRET;
+export class JwtRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
+  constructor(private prisma: PrismaService, private configService: ConfigService) {
+    const secret = configService.get<string>('JWT_REFRESH_SECRET');
+    
     if (!secret) {
-      throw new Error('JWT_REFRESH_SECRET is not defined in the environment variables');
+      throw new Error('JWT_REFRESH_SECRET is not defined');
     }
     super({
-      // Extract the token from the body (where the refresh token is usually sent)
-      jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret, 
-      passReqToCallback: true, 
+      secretOrKey: secret,
+      passReqToCallback: true,
     });
   }
 
   async validate(req: Request, payload: any) {
-    const refreshToken = req.body.refreshToken;
-    return { ...payload, refreshToken };
+    const refreshToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { hashedRefreshToken: true },
+    });
+
+    if (!user || !user.hashedRefreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, user.hashedRefreshToken);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    return { userId: payload.sub, email: payload.email };
   }
 }
