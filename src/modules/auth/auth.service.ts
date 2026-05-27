@@ -1,9 +1,5 @@
 import { SignUpDto } from './../users/dto/signup.dto';
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -11,8 +7,10 @@ import { ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
 import { UserEntity } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 import * as bcrypt from 'bcrypt';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,45 +18,23 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
   ) {}
 
-  async signUp(signUpDto: SignUpDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: {
-        email: signUpDto.email,
-      },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('The email is already registered');
-    }
-
+  async signUp(signUpDto: SignUpDto): Promise<AuthResponseDto> {
     const user = await this.usersService.create(signUpDto);
-
     const tokens = await this.generateTokens(user.id, user.email);
-    
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
       message: 'User created successfully',
       user: new UserEntity(user),
-      ...tokens
+      ...tokens,
     };
   }
 
-  async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email: loginDto.email,
-      },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-      },
-    });
-
+  async login(loginDto: LoginDto): Promise<LoginResponseDto> {
+    const user = await this.usersService.findOneForLogin(loginDto.email);
     const isPasswordValid = user
       ? await bcrypt.compare(loginDto.password, user.password)
       : false;
@@ -68,7 +44,6 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user.id, user.email);
-
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -77,34 +52,23 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
-    await this.prisma.user.updateMany({
-      where: {
-        id: userId,
-      },
-      data: {
-        hashedRefreshToken: null,
-      },
-    });
-
-    return {
-      message: 'Logged out successfully',
-    };
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.usersService.removeRefreshToken(userId);
+    return { message: 'Logged out successfully' };
   }
 
-  async refreshToken(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        id: true,
-        email: true,
-        hashedRefreshToken: true,
-      },
-    });
+  async refreshToken(userId: string, refreshToken: string): Promise<Omit<LoginResponseDto, 'message'>> {
+    const user = await this.usersService.findOneForRefresh(userId);
 
     if (!user || !user.hashedRefreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const isTokenValid = await bcrypt.compare(
+      refreshToken,
+      user.hashedRefreshToken,
+    );
+    if (!isTokenValid) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -115,7 +79,7 @@ export class AuthService {
     return tokens;
   }
 
-  private async generateTokens(userId: string, email: string) {
+  private async generateTokens(userId: string, email: string): Promise<Omit<LoginResponseDto, 'message'>> {
     const payload = {
       sub: userId,
       email,
@@ -141,7 +105,7 @@ export class AuthService {
     };
   }
 
-  private async updateRefreshToken(userId: string, refreshToken: string) {
+  private async updateRefreshToken(userId: string, refreshToken: string): Promise<void> {
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
     await this.prisma.user.update({

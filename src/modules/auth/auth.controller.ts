@@ -11,30 +11,31 @@ import {
   ApiSignUp,
 } from 'src/common/decorators/api-auth.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtService } from '@nestjs/jwt';
 import {
   CurrentUser,
   CurrentUserId,
+  RefreshToken,
 } from 'src/common/decorators/get-current-user.decorator';
 import { SignUpDto } from '../users/dto/signup.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { UserEntity } from '../users/entities/user.entity';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
-  ) {}
+  
+  constructor( private readonly authService: AuthService ) {}
 
   @Post('signup')
   @ApiSignUp()
-  async signup(@Body() signUpDto: SignUpDto) {
+  async signup(@Body() signUpDto: SignUpDto): Promise<AuthResponseDto> {
     return this.authService.signUp(signUpDto);
   }
 
   @Post('login')
   @ApiLogin()
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(loginDto);
   }
 
@@ -42,7 +43,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard) // 1. Execution: Do you have permission?
   @ApiBearerAuth('access-token') // 2. Documentation: Visual notification that a token is required
   @ApiLogout() // 3. Documentation: Response Details
-  async logout(@CurrentUserId() userId: string) {
+  async logout(@CurrentUserId() userId: string): Promise<{ message: string }> {
     return this.authService.logout(userId);
   }
 
@@ -50,7 +51,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiProfile()
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: any): Promise<UserEntity> {
     return user;
   }
 
@@ -58,7 +59,10 @@ export class AuthController {
   @UseGuards(JwtRefreshAuthGuard)
   @ApiBearerAuth('refresh-token')
   @ApiRefresh()
-  async refresh(@CurrentUserId() userId: string) {
-    return this.authService.refreshToken(userId);
+  async refresh(
+    @CurrentUserId() userId: string,
+    @RefreshToken() token: string,
+  ): Promise<LoginResponseDto> {
+    return this.authService.refreshToken(userId, token);
   }
 }

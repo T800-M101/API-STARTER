@@ -20,3 +20,11 @@ export const CurrentUserId = createParamDecorator(
     return user?.userId || null;
   },
 );
+
+export const RefreshToken = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const authHeader = request.headers.authorization;
+    return authHeader?.split(' ')[1]; 
+  },
+);
