@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/auth/jwt.guard';
 import { JwtRefreshAuthGuard } from '../../common/guards/auth/jwt-refresh.guard';
@@ -17,6 +16,7 @@ import {
   CurrentUser,
   CurrentUserId,
 } from 'src/common/decorators/get-current-user.decorator';
+import { SignUpDto } from '../users/dto/signup.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,8 +28,8 @@ export class AuthController {
 
   @Post('signup')
   @ApiSignUp()
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.signUp(registerDto);
+  async signup(@Body() signUpDto: SignUpDto) {
+    return this.authService.signUp(signUpDto);
   }
 
   @Post('login')
@@ -39,9 +39,9 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)       // 1. Execution: Do you have permission?
+  @UseGuards(JwtAuthGuard) // 1. Execution: Do you have permission?
   @ApiBearerAuth('access-token') // 2. Documentation: Visual notification that a token is required
-  @ApiLogout()                   // 3. Documentation: Response Details
+  @ApiLogout() // 3. Documentation: Response Details
   async logout(@CurrentUserId() userId: string) {
     return this.authService.logout(userId);
   }
@@ -53,7 +53,7 @@ export class AuthController {
   async getProfile(@CurrentUser() user: any) {
     return user;
   }
-  
+
   @Post('refresh')
   @UseGuards(JwtRefreshAuthGuard)
   @ApiBearerAuth('refresh-token')
@@ -61,5 +61,4 @@ export class AuthController {
   async refresh(@CurrentUserId() userId: string) {
     return this.authService.refreshToken(userId);
   }
-
 }

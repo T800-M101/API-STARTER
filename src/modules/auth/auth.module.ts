@@ -7,9 +7,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     PassportModule.register({defaultStrategy: 'jwt'}),
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({

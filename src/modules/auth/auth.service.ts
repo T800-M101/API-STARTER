@@ -1,27 +1,32 @@
+import { SignUpDto } from './../users/dto/signup.dto';
 import {
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
+import { UserEntity } from '../users/entities/user.entity';
+import { UsersService } from '../users/users.service';
+
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService
   ) {}
 
-  async signUp(registerDto: RegisterDto) {
+  async signUp(signUpDto: SignUpDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: {
-        email: registerDto.email,
+        email: signUpDto.email,
       },
     });
 
@@ -29,23 +34,16 @@ export class AuthService {
       throw new ConflictException('The email is already registered');
     }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const user = await this.usersService.create(signUpDto);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: registerDto.email,
-        username: registerDto.username,
-        password: hashedPassword,
-      },
-    });
+    const tokens = await this.generateTokens(user.id, user.email);
+    
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
       message: 'User created successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      },
+      user: new UserEntity(user),
+      ...tokens
     };
   }
 

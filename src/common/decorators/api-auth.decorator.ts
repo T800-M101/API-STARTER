@@ -12,8 +12,8 @@ import {
 } from '@nestjs/swagger';
 import { LoginDto } from 'src/modules/auth/dto/login.dto';
 import { LogoutResponseDto } from 'src/modules/auth/dto/logout.dto';
-import { RegisterDto } from 'src/modules/auth/dto/register.dto';
-import { UserProfileDto } from 'src/modules/auth/dto/user-profile.dto';
+import { SignUpDto } from 'src/modules/users/dto/signup.dto';
+import { UserProfileDto } from 'src/modules/users/dto/user-profile.dto';
 
 /**
  * Decorator for the Sign-Up operation.
@@ -22,8 +22,11 @@ import { UserProfileDto } from 'src/modules/auth/dto/user-profile.dto';
  */
 export function ApiSignUp() {
   return applyDecorators(
-    ApiOperation({ summary: 'Register a new account', description: 'Creates a user profile.' }),
-    ApiBody({ type: RegisterDto }),
+    ApiOperation({
+      summary: 'Register a new account',
+      description: 'Creates a user profile.',
+    }),
+    ApiBody({ type: SignUpDto }),
     ApiCreatedResponse({ description: 'User successfully created.' }),
     ApiBadRequestResponse({ description: 'Validation failed.' }),
     ApiConflictResponse({ description: 'Email or username already exists.' }),
@@ -37,7 +40,10 @@ export function ApiSignUp() {
  */
 export function ApiLogin() {
   return applyDecorators(
-    ApiOperation({ summary: 'Login', description: 'Authenticates user and returns JWT tokens.' }),
+    ApiOperation({
+      summary: 'Login',
+      description: 'Authenticates user and returns JWT tokens.',
+    }),
     ApiBody({ type: LoginDto }),
     ApiOkResponse({ description: 'Login successful.' }),
     ApiUnauthorizedResponse({ description: 'Invalid credentials.' }),
@@ -50,7 +56,10 @@ export function ApiLogin() {
  */
 export function ApiRefresh() {
   return applyDecorators(
-    ApiOperation({ summary: 'Refresh Token', description: 'Issues new tokens.' }),
+    ApiOperation({
+      summary: 'Refresh Token',
+      description: 'Issues new tokens.',
+    }),
     ApiBearerAuth('access-token'), // Estandariza el nombre aquí
     ApiOkResponse({ description: 'Tokens refreshed successfully.' }),
     ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
@@ -63,11 +72,14 @@ export function ApiRefresh() {
  */
 export function ApiLogout() {
   return applyDecorators(
-    ApiOperation({ summary: 'Logout user', description: 'Invalidates the current session.' }),
+    ApiOperation({
+      summary: 'Logout user',
+      description: 'Invalidates the current session.',
+    }),
     ApiBearerAuth('access-token'),
-    ApiOkResponse({ 
+    ApiOkResponse({
       description: 'Successfully logged out.',
-      type: LogoutResponseDto 
+      type: LogoutResponseDto,
     }),
     ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
     ApiNotFoundResponse({ description: 'User not found.' }),
@@ -82,9 +94,9 @@ export function ApiProfile() {
   return applyDecorators(
     ApiOperation({ summary: 'Get current user profile' }),
     ApiBearerAuth('access-token'),
-    ApiOkResponse({ 
+    ApiOkResponse({
       description: 'Profile retrieved successfully.',
-      type: UserProfileDto 
+      type: UserProfileDto,
     }),
     ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
   );
