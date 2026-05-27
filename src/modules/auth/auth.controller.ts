@@ -38,14 +38,6 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @UseGuards(JwtRefreshAuthGuard)
-  @Post('refresh')
-  @ApiBearerAuth('refresh-token')
-  @ApiRefresh()
-  async refresh(@CurrentUserId() userId: string) {
-    return this.authService.refreshToken(userId);
-  }
-
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @ApiBearerAuth('access-token')
@@ -61,4 +53,13 @@ export class AuthController {
   async getProfile(@CurrentUser() user: any) {
     return user;
   }
+  
+  @UseGuards(JwtRefreshAuthGuard)
+  @Post('refresh')
+  @ApiBearerAuth('refresh-token')
+  @ApiRefresh()
+  async refresh(@CurrentUserId() userId: string) {
+    return this.authService.refreshToken(userId);
+  }
+
 }
