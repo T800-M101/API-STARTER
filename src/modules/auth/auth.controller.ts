@@ -4,6 +4,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/auth/jwt.guard';
 import { JwtRefreshAuthGuard } from '../../common/guards/auth/jwt-refresh.guard';
 import {
+  ApiCreateAdmin,
   ApiLogin,
   ApiLogout,
   ApiProfile,
@@ -20,12 +21,15 @@ import { SignUpDto } from '../users/dto/signup.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { UserEntity } from '../users/entities/user.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { TokenPair } from './interface/token-pare.interface';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+import { RolesGuard } from 'src/common/guards/auth/roles.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  
-  constructor( private readonly authService: AuthService ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
   @ApiSignUp()
@@ -62,7 +66,15 @@ export class AuthController {
   async refresh(
     @CurrentUserId() userId: string,
     @RefreshToken() token: string,
-  ): Promise<LoginResponseDto> {
+  ): Promise<TokenPair> {
     return this.authService.refreshToken(userId, token);
+  }
+
+  @Post('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiCreateAdmin()
+  async createAdmin(@Body() createAdminDto: SignUpDto) {
+    return this.authService.createAdmin(createAdminDto);
   }
 }

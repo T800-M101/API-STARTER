@@ -201,3 +201,24 @@ src/
 - [Prisma Documentation](https://www.prisma.io/docs/)
 - [Docker Documentation](https://docs.docker.com/)
 - [TablePlus](https://tableplus.com/) (PostgreSQL visual client)
+
+## CREATE THE FIRST ADMIN
+Execute the next command in the console:
+
+```bash
+node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync('admin123', 10));"
+```
+
+Now, copy the hashed password and paste it in the next query:
+
+```sql
+INSERT INTO "users" ("id", "email", "password", "role", "createdAt", "updatedAt") 
+VALUES (
+    gen_random_uuid(), 
+    'admin@example.com', 
+    'PASTE HERE YOUR HASHED PASSWORD', 
+    'ADMIN', 
+    CURRENT_TIMESTAMP, 
+    CURRENT_TIMESTAMP
+);
+````

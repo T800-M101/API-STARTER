@@ -9,6 +9,7 @@ import {
   ApiOkResponse,
   ApiUnauthorizedResponse,
   ApiNotFoundResponse,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { LoginDto } from 'src/modules/auth/dto/login.dto';
 import { LogoutResponseDto } from 'src/modules/auth/dto/logout.dto';
@@ -99,5 +100,20 @@ export function ApiProfile() {
       type: UserProfileDto,
     }),
     ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
+  );
+}
+
+/**
+ * Decorator for the Create Admin operation.
+ * Documents the endpoint used to create a new administrative user.
+ * It requires JWT authentication and enforces an 'ADMIN' role check.
+ */
+export function ApiCreateAdmin() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Create Admin User (Admin Only)' }),
+    ApiBearerAuth('access-token'),
+    ApiCreatedResponse({ description: 'Admin successfully created.' }),
+    ApiForbiddenResponse({ description: 'Forbidden (Requires ADMIN role).' }),
+    ApiBadRequestResponse({ description: 'Validation failed.' }),
   );
 }

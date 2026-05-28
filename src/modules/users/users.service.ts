@@ -6,8 +6,12 @@ import { Prisma, User } from '@prisma/client';
 
 import * as bcrypt from 'bcrypt';
 
-type UserForLogin = Prisma.UserGetPayload<{ select: { id: true; email: true; password: true } }>;
-type UserForRefresh = Prisma.UserGetPayload<{ select: { id: true; email: true; hashedRefreshToken: true } }>;
+type UserForLogin = Prisma.UserGetPayload<{
+  select: { id: true; email: true; password: true; role: true };
+}>;
+type UserForRefresh = Prisma.UserGetPayload<{
+  select: { id: true; email: true; hashedRefreshToken: true; role: true };
+}>;
 
 @Injectable()
 export class UsersService {
@@ -60,17 +64,19 @@ export class UsersService {
         id: true,
         email: true,
         password: true,
+        role: true,
       },
     });
   }
 
-  async findOneForRefresh(userId: string): Promise<UserForRefresh | null> {
+  async findOneForRefresh(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         email: true,
         hashedRefreshToken: true,
+        role: true,
       },
     });
   }
@@ -84,7 +90,10 @@ export class UsersService {
     });
   }
 
-  async updateRefreshToken(userId: string, hashedRefreshToken: string | null): Promise<void> {
+  async updateRefreshToken(
+    userId: string,
+    hashedRefreshToken: string | null,
+  ): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: { hashedRefreshToken },

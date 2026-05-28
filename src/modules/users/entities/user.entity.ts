@@ -6,11 +6,14 @@ export class UserEntity {
   
   email!: string;
 
+  role?: string;
+  
   @Exclude()
   hashedRefreshToken!: string | null;
 
   @Exclude() 
   password!: string;
+
 
   @Exclude()
   createdAt!: Date;

@@ -11,6 +11,8 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 
 import * as bcrypt from 'bcrypt';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { TokenPair } from './interface/token-pare.interface';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +25,7 @@ export class AuthService {
 
   async signUp(signUpDto: SignUpDto): Promise<AuthResponseDto> {
     const user = await this.usersService.create(signUpDto);
-    const tokens = await this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -43,7 +45,7 @@ export class AuthService {
       throw new UnauthorizedException('Wrong credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -57,7 +59,19 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async refreshToken(userId: string, refreshToken: string): Promise<Omit<LoginResponseDto, 'message'>> {
+  async createAdmin(createAdminDto: SignUpDto) {
+    const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
+
+    return this.prisma.user.create({
+      data: {
+        ...createAdminDto,
+        password: hashedPassword,
+        role: Role.ADMIN,
+      },
+    });
+  }
+
+  async refreshToken(userId: string, refreshToken: string): Promise<TokenPair> {
     const user = await this.usersService.findOneForRefresh(userId);
 
     if (!user || !user.hashedRefreshToken) {
@@ -72,17 +86,22 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
 
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return tokens;
   }
 
-  private async generateTokens(userId: string, email: string): Promise<Omit<LoginResponseDto, 'message'>> {
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+  ): Promise<TokenPair> {
     const payload = {
       sub: userId,
       email,
+      role,
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -105,7 +124,10 @@ export class AuthService {
     };
   }
 
-  private async updateRefreshToken(userId: string, refreshToken: string): Promise<void> {
+  private async updateRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<void> {
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
     await this.prisma.user.update({
