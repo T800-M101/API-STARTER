@@ -91,17 +91,17 @@ export function ApiLogout() {
  * Decorator for the Get Profile operation.
  * Documents the endpoint that returns the current user's profile information.
  */
-export function ApiProfile() {
-  return applyDecorators(
-    ApiOperation({ summary: 'Get current user profile' }),
-    ApiBearerAuth('access-token'),
-    ApiOkResponse({
-      description: 'Profile retrieved successfully.',
-      type: UserProfileDto,
-    }),
-    ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
-  );
-}
+// export function ApiProfile() {
+//   return applyDecorators(
+//     ApiOperation({ summary: 'Get current user profile' }),
+//     ApiBearerAuth('access-token'),
+//     ApiOkResponse({
+//       description: 'Profile retrieved successfully.',
+//       type: UserProfileDto,
+//     }),
+//     ApiUnauthorizedResponse({ description: 'Unauthorized.' }),
+//   );
+// }
 
 /**
  * Decorator for the Create Admin operation.

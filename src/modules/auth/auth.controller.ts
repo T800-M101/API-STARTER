@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/auth/jwt.guard';
@@ -7,29 +14,31 @@ import {
   ApiCreateAdmin,
   ApiLogin,
   ApiLogout,
-  ApiProfile,
   ApiRefresh,
   ApiSignUp,
 } from 'src/common/decorators/api-auth.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
-  CurrentUser,
   CurrentUserId,
   RefreshToken,
 } from 'src/common/decorators/get-current-user.decorator';
 import { SignUpDto } from '../users/dto/signup.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { UserEntity } from '../users/entities/user.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { TokenPair } from './interface/token-pare.interface';
+import { TokenPair } from './interface/token-pair.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { RolesGuard } from 'src/common/guards/auth/roles.guard';
+import { UsersService } from '../users/users.service';
+import { UserEntity } from '../users/entities/user.entity';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post('signup')
   @ApiSignUp()
@@ -49,14 +58,6 @@ export class AuthController {
   @ApiLogout() // 3. Documentation: Response Details
   async logout(@CurrentUserId() userId: string): Promise<{ message: string }> {
     return this.authService.logout(userId);
-  }
-
-  @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @ApiProfile()
-  async getProfile(@CurrentUser() user: any): Promise<UserEntity> {
-    return user;
   }
 
   @Post('refresh')

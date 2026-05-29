@@ -11,7 +11,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 
 import * as bcrypt from 'bcrypt';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { TokenPair } from './interface/token-pare.interface';
+import { TokenPair } from './interface/token-pair.interface';
 import { Role } from '@prisma/client';
 
 @Injectable()

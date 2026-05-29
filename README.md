@@ -212,12 +212,14 @@ node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync('admin123
 Now, copy the hashed password and paste it in the next query:
 
 ```sql
-INSERT INTO "users" ("id", "email", "password", "role", "createdAt", "updatedAt") 
+INSERT INTO "users" ("id", "email", "username", "password", "role", "hashedRefreshToken", "createdAt", "updatedAt") 
 VALUES (
     gen_random_uuid(), 
     'admin@example.com', 
+    'admin',
     'PASTE HERE YOUR HASHED PASSWORD', 
     'ADMIN', 
+    null,
     CURRENT_TIMESTAMP, 
     CURRENT_TIMESTAMP
 );
