@@ -111,8 +111,14 @@ npm run down
 
 ### Start the project each day
 ```bash
-npm run dev
+npm run up
 ```
+
+### See logs
+```bash
+npm run logs
+```
+
 
 This command starts the API and shows real-time logs.
 
@@ -147,15 +153,19 @@ npm run docker:down
 ---
 
 ## 📋 Useful commands
+```markdown
 
 | Command | What it does |
 |----------|---------------|
-| `npm run dev` | Start the API (development mode with hot-reload) |
-| `npm run docker:down` | Stop all containers |
-| `npm run docker:logs` | View API logs in real-time |
-| `npm run docker:exec` | Enter the API container (bash) |
-| `npm run db:studio` | Open Prisma Studio (web interface for the database) |
-| `npm run db:reset` | Reset the database from scratch |
+| `npm run up` | Start the containers in background |
+| `npm run down` | Stop and remove all containers |
+| `npm run logs` | View API logs in real-time |
+| `npm run rebuild` | Full rebuild (stop, purge build cache, start) |
+| `npm run refresh` | Hard reset (rebuild + wipe volumes + run migrations) |
+| `npm run db:init` | Run database migrations |
+| `npm run db:gen` | Generate Prisma client code |
+| `npm run db:gui` | Open Prisma Studio (database visualizer) |
+```
 
 ---
 
